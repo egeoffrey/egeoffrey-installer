@@ -191,9 +191,13 @@ def save_configuration():
         print_error("Unable to save myHouse docker configuration: "+str(e))
        
 # run docker-compose
-def run_docker(args):
+def run_docker_compose(args):
     global DOCKER_COMPOSE_FILE
     subprocess.call(["docker-compose", "-f", DOCKER_COMPOSE_FILE] + args)
+    
+# run docker
+def run_docker(args):
+    subprocess.call(["docker"] + args)
        
 # print usage
 def print_usage():
@@ -202,17 +206,19 @@ def print_usage():
     print_output("  -v\tenable debug mode")
     print_output("")
     print_output("Commands:")
-    print_output("  list_available      List available packages that can be installed")
-    print_output("  list_installed      List already installed packages")
-    print_output("  search              Search packages matching the provided description")
     print_output("  info                Print out information on a given package")
     print_output("  install             Install the provided package(s)")
-    print_output("  uninstall           Uninstall the provided package(s)")
-    print_output("  update              Update the installed package(s)")
-    print_output("  start               Start configured services")
-    print_output("  stop                Stop running services")
+    print_output("  list_available      List available packages that can be installed")
+    print_output("  list_installed      List already installed packages")
+    print_output("  logs                Print out log information")
     print_output("  reload              Reload the configuration")
+    print_output("  search              Search packages matching the provided description")
+    print_output("  start               Start configured services")
+    print_output("  stats               Print out running packages CPU and memory utilization")
     print_output("  status              Show currently running components")
+    print_output("  stop                Stop running services")
+    print_output("  update              Update the installed package(s)")
+    print_output("  uninstall           Uninstall the provided package(s)")
     print_output("  version             Print out this script version")
         
 ## MAIN ##
@@ -226,28 +232,8 @@ parse_command_line()
 
 # do what requested by the user
 
-# list packages available to install
-if command == "list_available":
-    marketplace = get_marketplace()
-    for package in sorted(marketplace):
-        # skip already installed packages
-        if package in config["services"]: continue
-        print_output(package+": "+marketplace[package]["description"])
-
-# list packages already installed
-elif command == "list_installed":
-    for service in sorted(config["services"]):
-        print_output(service)
-
-# search for a package
-elif command == "search":
-    marketplace = get_marketplace()
-    for package in sorted(marketplace):
-        if arguments in marketplace[package]["description"] or arguments in marketplace[package]["tags"]:
-            print_output(package+": "+marketplace[package]["description"])
-
 # print out information on a given package
-elif command == "info":
+if command == "info":
     package = arguments
     if package == "": print_error("a package name must be provided")
     marketplace = get_marketplace([package])
@@ -316,8 +302,59 @@ elif command == "install":
         print_output(package+" installed successfully")
     # save the updated configuration file
     save_configuration()
-    run_docker(["up", "-d", "--remove-orphans"])
+    run_docker_compose(["up", "-d", "--remove-orphans"])
+    
+# list packages available to install
+elif command == "list_available":
+    marketplace = get_marketplace()
+    for package in sorted(marketplace):
+        # skip already installed packages
+        if package in config["services"]: continue
+        print_output(package+": "+marketplace[package]["description"])
+
+# list packages already installed
+elif command == "list_installed":
+    for service in sorted(config["services"]):
+        print_output(service)
+        
+# run docker logs
+elif command == "logs":
+    options = arguments.split(" ") if arguments != "" else []
+    run_docker_compose(["logs"]+options)
+    
+# reload the configuration
+elif command == "reload":
+    run_docker_compose(["up", "-d", "--remove-orphans"])
+
+# search for a package
+elif command == "search":
+    marketplace = get_marketplace()
+    for package in sorted(marketplace):
+        if arguments in marketplace[package]["description"] or arguments in marketplace[package]["tags"]:
+            print_output(package+": "+marketplace[package]["description"])
             
+# start services
+elif command == "start":
+    packages = arguments.split(" ") if arguments != "" else []
+    run_docker_compose(["up", "-d", "--remove-orphans"]+packages)
+    
+# run docker stats
+elif command == "stats":
+    run_docker(["stats", "--no-stream"])
+
+# run docker ps
+elif command == "status":
+    run_docker_compose(["ps"])
+
+# stop services
+elif command == "stop":
+    run_docker_compose(["down"])
+    
+# update an installed packages
+elif command == "update":
+    packages = arguments.split(" ") if arguments != "" else []
+    run_docker_compose(["pull"]+packages)
+    
 # uninstall a package
 elif command == "uninstall":
     packages = arguments.split(" ")
@@ -332,29 +369,7 @@ elif command == "uninstall":
         print_output(package+" uninstalled successfully")
     # save the updated configuration file
     save_configuration()
-    run_docker(["up", "-d", "--remove-orphans"])
-    
-# update an installed packages
-elif command == "update":
-    packages = arguments.split(" ") if arguments != "" else []
-    run_docker(["pull"]+packages)
-    
-# start services
-elif command == "start":
-    packages = arguments.split(" ") if arguments != "" else []
-    run_docker(["up", "-d", "--remove-orphans"]+packages)
-
-# stop services
-elif command == "stop":
-    run_docker(["down"])
-    
-# reload the configuration
-elif command == "reload":
-    run_docker(["up", "-d", "--remove-orphans"])
-    
-# run docker ps
-elif command == "status":
-    run_docker(["ps"])
+    run_docker_compose(["up", "-d", "--remove-orphans"])
     
 # print out this script version
 elif command == "version":
