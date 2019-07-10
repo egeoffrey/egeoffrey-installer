@@ -119,7 +119,7 @@ def list_marketplace():
 def get_repository(package):
     try: 
         # download from the marketplace the file for the package
-        response = requests.get("https://raw.githubusercontent.com/myhouse-project/myhouse-marketplace/master/marketplace/"+package+".yml")
+        response = requests.get("https://raw.githubusercontent.com/myhouse-project/myhouse-marketplace/master/marketplace/"+package+".yml?timestamp="+str(int(time.time())))
         content = yaml.load(response.content, Loader=yaml.SafeLoader)
         if "github" not in content: return None
         return content["github"]
@@ -293,6 +293,11 @@ elif command == "install":
                     if not os.path.exists(MY_DIRECTORY):
                         print_debug("Creating MY_DIRECTORY "+MY_DIRECTORY)
                         os.makedirs(MY_DIRECTORY)
+            if "devices" in service:
+                for device in service["devices"]:
+                    device = device.replace('"', "")
+                    split = device.split(":")
+                    print_output("Please ensure the mapped device "+split[0]+" exists")
             # the docker daemon will restart the service at boot time
             #service["restart"] = "always"
             # add the new service
@@ -302,7 +307,6 @@ elif command == "install":
         print_output(package+" installed successfully")
     # save the updated configuration file
     save_configuration()
-    run_docker_compose(["up", "-d", "--remove-orphans"])
     
 # list packages available to install
 elif command == "list_available":
@@ -369,7 +373,6 @@ elif command == "uninstall":
         print_output(package+" uninstalled successfully")
     # save the updated configuration file
     save_configuration()
-    run_docker_compose(["up", "-d", "--remove-orphans"])
     
 # print out this script version
 elif command == "version":

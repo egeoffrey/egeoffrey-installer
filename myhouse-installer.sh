@@ -258,7 +258,7 @@ install_myhouse_cli() {
 # install myhouse base modules
 install_myhouse_modules() {
     echo -n "Installing myHouse modules..."
-    run "myhouse-cli install myhouse-gateway myhouse-database myhouse-controller myhouse-gui"
+    run "myhouse-cli install myhouse-gateway myhouse-database myhouse-controller myhouse-gui && myhouse-cli start"
     if grep -q myhouse-gateway $INSTALL_DIRECTORY/docker-compose.yml; then
         echo -e "\033[32mdone\033[0m"
     else
@@ -301,11 +301,10 @@ install_myhouse_cli
 install_myhouse_modules
 
 # print out completed message
+# TODO: show the main IP only
 MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
 echo ""
 echo -e "\033[32mCOMPLETED!\033[0m - myHouse should be up and running now, you can access the web interface on http://$MY_IP"
 echo "Run 'myhouse-cli' to search the marketplace and add additional packages to your installation."
 echo "If connecting to a remote instance or provided with HouseID/Passcode, please edit $INSTALL_DIRECTORY/.env and run 'myhouse-cli reload'"
-
-
 
