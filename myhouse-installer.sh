@@ -2,7 +2,7 @@
 
 VERSION="1.0"
 DEFAULT_MYHOUSE_VERSION="development"
-MYHOUSE_CLI_URL="https://raw.githubusercontent.com/myhouse-project/myhouse-installer/development/myhouse-cli"
+MYHOUSE_CLI_URL="https://raw.githubusercontent.com/myhouse-project/myhouse-cli/development/myhouse-cli"
 LOG_FILE="/tmp/myhouse-installer.log"
 APT_GET_UPDATE_DONE=""
 
