@@ -42,7 +42,7 @@ install_os() {
             APT_GET_UPDATE_DONE="Y"
         fi
         # install it
-        run "apt-get install $PACKAGE"
+        run "apt-get install -y $PACKAGE"
     else
         echo -e "\033[32mok\033[0m"
         return
@@ -101,7 +101,7 @@ install_python_os() {
             APT_GET_UPDATE_DONE="Y"
         fi
         # install it
-        run "apt-get install $PACKAGE"
+        run "apt-get install -y $PACKAGE"
     else
         echo -e "\033[32mok\033[0m"
         return
@@ -173,7 +173,7 @@ detect_timezone() {
         echo -e "\033[32mok\033[0m ($TIMEZONE)"
     else
         TIMEZONE="Europe/Paris"
-        echo -e "\033[33mfailed, using defeault $TIMEZONE\033[0m"
+        echo -e "\033[33mfailed, using default $TIMEZONE\033[0m"
     fi
 }
 
@@ -258,7 +258,7 @@ install_myhouse_cli() {
 # install myhouse base modules
 install_myhouse_modules() {
     echo -n "Installing myHouse modules..."
-    run "myhouse-cli install myhouse-gateway myhouse-database myhouse-controller myhouse-gui && myhouse-cli start"
+    run "myhouse-cli -d $INSTALL_DIRECTORY install myhouse-gateway myhouse-database myhouse-controller myhouse-gui && myhouse-cli -d $INSTALL_DIRECTORY start"
     if grep -q myhouse-gateway $INSTALL_DIRECTORY/docker-compose.yml; then
         echo -e "\033[32mdone\033[0m"
     else
