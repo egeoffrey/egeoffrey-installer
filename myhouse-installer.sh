@@ -10,6 +10,7 @@ APT_GET_UPDATE_DONE=""
 error() {
     echo 
     echo -e "\033[91mERROR\033[0m: $1"
+    echo "Installer logs saved in $LOG_FILE"
     exit 1
 }
 
@@ -143,21 +144,28 @@ install_docker() {
 # install docker-compose if not already installed
 install_docker_compose() {
     FILENAME="docker-compose"
+    FILE_PATH="/usr/local/bin/docker-compose"
     echo -n "Checking for $FILENAME..."
     OUTPUT=$(which $FILENAME)
     # if the required dependency does not exist, install it
     if [ -z "$OUTPUT" ]; then
         echo -ne "\033[33mnot found\033[0m..."
         echo -n "installing docker-compose..."
-        run "curl -L --fail https://github.com/docker/compose/releases/download/1.24.0/run.sh -o /usr/local/bin/docker-compose"
-        run "chmod +x /usr/local/bin/docker-compose"
+        # install docker-compose as a docker image
+        run "curl -L --fail https://github.com/docker/compose/releases/download/1.24.0/run.sh -o $FILE_PATH"
+        run "chmod +x $FILE_PATH"
+        # for ARM architecture we need a different docker-compose image
+        if [ $ARCHITECTURE = "arm32v6" ]; then
+            run "sed -i 's/IMAGE=\"docker\/compose:\$VERSION\"/IMAGE=\"korbai\/docker-compose\"/' $FILE_PATH"
+        fi
     else 
         echo -e "\033[32mok\033[0m"
         return
     fi
-    # ensure the installation was successful 
+    # ensure the installation was successful
     OUTPUT=$(which $FILENAME)
-    if [ -z "$OUTPUT" ]; then
+    OUTPUT_2=$(docker-compose version 2>/dev/null|grep 'docker-compose version')
+    if [ -z "$OUTPUT" ] || [ -z "$OUTPUT_2" ]; then
         echo -e "\033[91mfailed\033[0m"
         error "Installation of docker-compose failed, please install it manually (https://docs.docker.com/compose/install/) and run this script again"
     fi
@@ -166,8 +174,8 @@ install_docker_compose() {
 
 # detect timezone
 detect_timezone() {
-    echo -n "Detecting timezone..."
-    OUTPUT=$(readlink /etc/localtime|sed -E 's/^.+zoneinfo\///' 2>&1)
+    echo -n "Detecting system timezone..."
+    OUTPUT=$(cat /etc/timezone 2>/dev/null)
     if [ -n "$OUTPUT" ]; then
         TIMEZONE=$OUTPUT
         echo -e "\033[32mok\033[0m ($TIMEZONE)"
@@ -244,20 +252,19 @@ EOF
 # download myhouse-cli
 install_myhouse_cli() {
     echo -n "Installing myhouse-cli utility..."
-    if [ -f $INSTALL_DIRECTORY/myhouse-cli ]; then
+    FILE_PATH="/usr/local/bin/myhouse-cli"
+    if [ -f $FILE_PATH ]; then
         echo -e "\033[33mskipping, file already exists\033[0m"
     else
-        curl -ssL $MYHOUSE_CLI_URL > $INSTALL_DIRECTORY/myhouse-cli 2>&1
-        chmod 755 $INSTALL_DIRECTORY/myhouse-cli
+        curl -ssL $MYHOUSE_CLI_URL > $FILE_PATH 2>&1
+        chmod +x $FILE_PATH
         echo -e "\033[32mdone\033[0m"
     fi
-    rm -f /usr/local/bin/myhouse-cli
-    ln -s $INSTALL_DIRECTORY/myhouse-cli /usr/local/bin/myhouse-cli
 }
 
 # install myhouse base modules
 install_myhouse_modules() {
-    echo -n "Installing myHouse modules..."
+    echo -n "Installing and starting myHouse..."
     run "myhouse-cli -d $INSTALL_DIRECTORY install myhouse-gateway myhouse-database myhouse-controller myhouse-gui && myhouse-cli -d $INSTALL_DIRECTORY start"
     if grep -q myhouse-gateway $INSTALL_DIRECTORY/docker-compose.yml; then
         echo -e "\033[32mdone\033[0m"
@@ -273,6 +280,10 @@ echo
 if [ "$EUID" -ne 0 ]; then 
     error "Please run as root"
 fi
+# detect timezone
+detect_timezone
+# detect CPU architecture
+detect_architecture
 # install required OS dependencies (file to search - package to install if not found)
 install_os python python
 install_os pip python-pip
@@ -284,10 +295,6 @@ install_python requests requests
 # install docker
 install_docker
 install_docker_compose
-# detect timezone
-detect_timezone
-# detect CPU architecture
-detect_architecture
 echo
 # ask where to install
 ask_install_directory
@@ -302,7 +309,7 @@ install_myhouse_modules
 
 # print out completed message
 # TODO: show the main IP only
-MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
+MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'|tail -1)
 echo ""
 echo -e "\033[32mCOMPLETED!\033[0m - myHouse should be up and running now, you can access the web interface on http://$MY_IP"
 echo "Run 'myhouse-cli' to search the marketplace and add additional packages to your installation."
