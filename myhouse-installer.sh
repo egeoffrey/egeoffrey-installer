@@ -1,6 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
+REVISION="2"
 MYHOUSE_CLI_URL="https://raw.githubusercontent.com/myhouse-project/myhouse-cli/development/myhouse-cli"
 DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/myhouse-installer.log"
@@ -292,7 +293,7 @@ install_myhouse_modules() {
 }
 
 # main
-echo -e "\033[4mmyHouse Installer v$VERSION\033[24m"
+echo -e "\033[4mmyHouse Installer v$VERSION-$REVISION\033[24m"
 echo
 if [ "$EUID" -ne 0 ]; then 
     error "Please run as root"
@@ -305,6 +306,7 @@ detect_architecture
 install_os python python
 install_os pip python-pip
 install_os ifconfig net-tools
+install_os git git
 # install other required OS dependencies (python module to import - package to install if not found)
 install_python_os yaml python-yaml
 # install required python dependencies (python module to import - python package to install if not found)
