@@ -1,8 +1,8 @@
 #!/bin/bash
 
 VERSION="1.0"
-DEFAULT_MYHOUSE_VERSION="development"
 MYHOUSE_CLI_URL="https://raw.githubusercontent.com/myhouse-project/myhouse-cli/development/myhouse-cli"
+DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/myhouse-installer.log"
 APT_GET_UPDATE_DONE=""
 
@@ -218,55 +218,72 @@ ask_install_directory() {
     fi
 }
 
-# ask for myhouse version
-ask_version() {
-    echo "Which version of myHouse you want to bind to? [$DEFAULT_MYHOUSE_VERSION]"
+# ask for myhouse settings
+ask_myhouse_settings() {
+    # gateway hostname
+    echo "What is the hostname of your myHouse Gateway? [myhouse-gateway]"
     read INPUT
     if [ -z "$INPUT" ]; then
-        MYHOUSE_VERSION=$DEFAULT_MYHOUSE_VERSION
+        MYHOUSE_GATEWAY_HOSTNAME="myhouse-gateway"
     else
-        MYHOUSE_VERSION=$INPUT
+        MYHOUSE_GATEWAY_HOSTNAME=$INPUT
     fi
-}
-
-# setup the myhouse docker environment
-install_myhouse_docker() {
-    echo -n "Setting up myHouse docker environment into $INSTALL_DIRECTORY..."
-    if [ -f $INSTALL_DIRECTORY/.env ]; then
-        echo -e "\033[33mskipping, file already exists\033[0m"
+    # gateway port
+    echo "On which port the myHouse Gateway is listening to? [443]"
+    read INPUT
+    if [ -z "$INPUT" ]; then
+        MYHOUSE_GATEWAY_PORT="443"
     else
-        cat > $INSTALL_DIRECTORY/.env <<EOF
-VERSION=$MYHOUSE_VERSION
+        MYHOUSE_GATEWAY_PORT=$INPUT
+    fi
+    # house id
+    echo "What is your House ID? [default_house]"
+    read INPUT
+    if [ -z "$INPUT" ]; then
+        MYHOUSE_ID="default_house"
+    else
+        MYHOUSE_ID=$INPUT
+    fi
+    # house passcode
+    echo "What is your House Passcode? []"
+    read INPUT
+    if [ -z "$INPUT" ]; then
+        MYHOUSE_PASSCODE=""
+    else
+        MYHOUSE_PASSCODE=$INPUT
+    fi
+    echo -n "Saving myHouse settings in $INSTALL_DIRECTORY/.env..."
+    cat > $INSTALL_DIRECTORY/.env <<EOF
 ARCHITECTURE=$ARCHITECTURE
 TZ=$TIMEZONE
-MYHOUSE_GATEWAY_HOSTNAME=myhouse-gateway
-#MYHOUSE_GATEWAY_PORT=443
-#MYHOUSE_ID=default_house
-#MYHOUSE_PASSCODE=
+MYHOUSE_GATEWAY_HOSTNAME=$MYHOUSE_GATEWAY_HOSTNAME
+MYHOUSE_GATEWAY_PORT=$MYHOUSE_GATEWAY_PORT
+MYHOUSE_ID=$MYHOUSE_ID
+MYHOUSE_PASSCODE=$MYHOUSE_PASSCODE
 PYTHONUNBUFFERED=1
 EOF
-        echo -e "\033[32mdone\033[0m"
-    fi
+    echo -e "\033[32mdone\033[0m"
 }
 
 # download myhouse-cli
 install_myhouse_cli() {
     echo -n "Installing myhouse-cli utility..."
     FILE_PATH="/usr/local/bin/myhouse-cli"
+    curl -ssL $MYHOUSE_CLI_URL > $FILE_PATH 2>&1
+    chmod +x $FILE_PATH
     if [ -f $FILE_PATH ]; then
-        echo -e "\033[33mskipping, file already exists\033[0m"
-    else
-        curl -ssL $MYHOUSE_CLI_URL > $FILE_PATH 2>&1
-        chmod +x $FILE_PATH
         echo -e "\033[32mdone\033[0m"
+    else
+        echo -e "\033[91mfailed\033[0m"
+        error "unable to install myhouse-cli"
     fi
 }
 
 # install myhouse base modules
 install_myhouse_modules() {
     echo -n "Installing and starting myHouse..."
-    run "myhouse-cli -d $INSTALL_DIRECTORY install myhouse-gateway myhouse-database myhouse-controller myhouse-gui && myhouse-cli -d $INSTALL_DIRECTORY start"
-    if grep -q myhouse-gateway $INSTALL_DIRECTORY/docker-compose.yml; then
+    run "myhouse-cli -d $INSTALL_DIRECTORY install myhouse-gateway:$DEFAULT_BRANCH myhouse-database:$DEFAULT_BRANCH myhouse-controller:$DEFAULT_BRANCH myhouse-gui:$DEFAULT_BRANCH && myhouse-cli -d $INSTALL_DIRECTORY start"
+    if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
         echo -e "\033[91mfailed\033[0m"
@@ -298,10 +315,8 @@ install_docker_compose
 echo
 # ask where to install
 ask_install_directory
-# ask for version to bind
-ask_version
-# create docker files
-install_myhouse_docker
+# ask myhouse settings
+ask_myhouse_settings
 # install myhouse-cli
 install_myhouse_cli
 # install base modules
