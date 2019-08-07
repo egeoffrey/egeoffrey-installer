@@ -2,9 +2,9 @@
 
 VERSION="1.0"
 REVISION="2"
-MYHOUSE_CLI_URL="https://raw.githubusercontent.com/myhouse-project/myhouse-cli/development/myhouse-cli"
+EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
 DEFAULT_BRANCH="development"
-LOG_FILE="/tmp/myhouse-installer.log"
+LOG_FILE="/tmp/egeoffrey-installer.log"
 APT_GET_UPDATE_DONE=""
 
 # print out an error message and exit
@@ -207,7 +207,7 @@ detect_architecture() {
 # ask for installation directory
 ask_install_directory() {
     CURRENT_DIR=$(pwd)
-    echo "Where do you want to install myHouse? [$CURRENT_DIR]"
+    echo "Where do you want to install eGeoffrey? [$CURRENT_DIR]"
     read INPUT
     if [ -z "$INPUT" ]; then
         INSTALL_DIRECTORY=$CURRENT_DIR
@@ -219,81 +219,81 @@ ask_install_directory() {
     fi
 }
 
-# ask for myhouse settings
-ask_myhouse_settings() {
+# ask for egeoffrey settings
+ask_egeoffrey_settings() {
     # gateway hostname
-    echo "What is the hostname of your myHouse Gateway? [myhouse-gateway]"
+    echo "What is the hostname of your eGeoffrey Gateway? [egeoffrey-gateway]"
     read INPUT
     if [ -z "$INPUT" ]; then
-        MYHOUSE_GATEWAY_HOSTNAME="myhouse-gateway"
+        EGEOFFREY_GATEWAY_HOSTNAME="egeoffrey-gateway"
     else
-        MYHOUSE_GATEWAY_HOSTNAME=$INPUT
+        EGEOFFREY_GATEWAY_HOSTNAME=$INPUT
     fi
     # gateway port
-    echo "On which port the myHouse Gateway is listening to? [443]"
+    echo "On which port the eGeoffrey Gateway is listening to? [443]"
     read INPUT
     if [ -z "$INPUT" ]; then
-        MYHOUSE_GATEWAY_PORT="443"
+        EGEOFFREY_GATEWAY_PORT="443"
     else
-        MYHOUSE_GATEWAY_PORT=$INPUT
+        EGEOFFREY_GATEWAY_PORT=$INPUT
     fi
     # house id
     echo "What is your House ID? [default_house]"
     read INPUT
     if [ -z "$INPUT" ]; then
-        MYHOUSE_ID="default_house"
+        EGEOFFREY_ID="default_house"
     else
-        MYHOUSE_ID=$INPUT
+        EGEOFFREY_ID=$INPUT
     fi
     # house passcode
     echo "What is your House Passcode? []"
     read INPUT
     if [ -z "$INPUT" ]; then
-        MYHOUSE_PASSCODE=""
+        EGEOFFREY_PASSCODE=""
     else
-        MYHOUSE_PASSCODE=$INPUT
+        EGEOFFREY_PASSCODE=$INPUT
     fi
-    echo -n "Saving myHouse settings in $INSTALL_DIRECTORY/.env..."
+    echo -n "Saving eGeoffrey settings in $INSTALL_DIRECTORY/.env..."
     cat > $INSTALL_DIRECTORY/.env <<EOF
 ARCHITECTURE=$ARCHITECTURE
 TZ=$TIMEZONE
-MYHOUSE_GATEWAY_HOSTNAME=$MYHOUSE_GATEWAY_HOSTNAME
-MYHOUSE_GATEWAY_PORT=$MYHOUSE_GATEWAY_PORT
-MYHOUSE_ID=$MYHOUSE_ID
-MYHOUSE_PASSCODE=$MYHOUSE_PASSCODE
+EGEOFFREY_GATEWAY_HOSTNAME=$EGEOFFREY_GATEWAY_HOSTNAME
+EGEOFFREY_GATEWAY_PORT=$EGEOFFREY_GATEWAY_PORT
+EGEOFFREY_ID=$EGEOFFREY_ID
+EGEOFFREY_PASSCODE=$EGEOFFREY_PASSCODE
 PYTHONUNBUFFERED=1
 EOF
     echo -e "\033[32mdone\033[0m"
 }
 
-# download myhouse-cli
-install_myhouse_cli() {
-    echo -n "Installing myhouse-cli utility..."
-    FILE_PATH="/usr/local/bin/myhouse-cli"
-    curl -ssL $MYHOUSE_CLI_URL > $FILE_PATH 2>&1
+# download egeoffrey-cli
+install_egeoffrey_cli() {
+    echo -n "Installing egeoffrey-cli utility..."
+    FILE_PATH="/usr/local/bin/egeoffrey-cli"
+    curl -ssL $EGEOFFREY_CLI_URL > $FILE_PATH 2>&1
     chmod +x $FILE_PATH
     if [ -f $FILE_PATH ]; then
         echo -e "\033[32mdone\033[0m"
     else
         echo -e "\033[91mfailed\033[0m"
-        error "unable to install myhouse-cli"
+        error "unable to install egeoffrey-cli"
     fi
 }
 
-# install myhouse base modules
-install_myhouse_modules() {
-    echo -n "Installing and starting myHouse..."
-    run "myhouse-cli -d $INSTALL_DIRECTORY install myhouse-gateway:$DEFAULT_BRANCH myhouse-database:$DEFAULT_BRANCH myhouse-controller:$DEFAULT_BRANCH myhouse-gui:$DEFAULT_BRANCH && myhouse-cli -d $INSTALL_DIRECTORY start"
+# install egeoffrey base modules
+install_egeoffrey_modules() {
+    echo -n "Installing and starting eGeoffrey..."
+    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
     if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
         echo -e "\033[91mfailed\033[0m"
-        error "unable to install myHouse modules"
+        error "unable to install eGeoffrey modules"
     fi
 }
 
 # main
-echo -e "\033[4mmyHouse Installer v$VERSION-$REVISION\033[24m"
+echo -e "\033[4meGeoffrey Installer v$VERSION-$REVISION\033[24m"
 echo
 if [ "$EUID" -ne 0 ]; then 
     error "Please run as root"
@@ -317,18 +317,18 @@ install_docker_compose
 echo
 # ask where to install
 ask_install_directory
-# ask myhouse settings
-ask_myhouse_settings
-# install myhouse-cli
-install_myhouse_cli
+# ask egeoffrey settings
+ask_egeoffrey_settings
+# install egeoffrey-cli
+install_egeoffrey_cli
 # install base modules
-install_myhouse_modules
+install_egeoffrey_modules
 
 # print out completed message
 # TODO: show the main IP only
 MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'|tail -1)
 echo ""
-echo -e "\033[32mCOMPLETED!\033[0m - myHouse should be up and running now, you can access the web interface on http://$MY_IP"
-echo "Run 'myhouse-cli' to search the marketplace and add additional packages to your installation."
-echo "If connecting to a remote instance or provided with HouseID/Passcode, please edit $INSTALL_DIRECTORY/.env and run 'myhouse-cli reload'"
+echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey should be up and running now, you can access the web interface on http://$MY_IP"
+echo "Run 'egeoffrey-cli' to search the marketplace and add additional packages to your installation."
+echo "If connecting to a remote instance or provided with HouseID/Passcode, please edit $INSTALL_DIRECTORY/.env and run 'egeoffrey-cli reload'"
 
