@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="2"
+REVISION="3"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
 DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -207,15 +207,15 @@ detect_architecture() {
 # ask for installation directory
 ask_install_directory() {
     CURRENT_DIR=$(pwd)
-    echo "Where do you want to install eGeoffrey? [$CURRENT_DIR]"
+    echo "Where do you want to install eGeoffrey? [$CURRENT_DIR/egeoffrey]"
     read INPUT
     if [ -z "$INPUT" ]; then
-        INSTALL_DIRECTORY=$CURRENT_DIR
+        INSTALL_DIRECTORY=$CURRENT_DIR/egeoffrey
     else
-        if [ ! -d "$INPUT" ]; then
-            mkdir -p $INPUT
+        if [ ! -d "$INPUT/egeoffrey" ]; then
+            mkdir -p $INPUT/egeoffrey
         fi
-        INSTALL_DIRECTORY=$INPUT
+        INSTALL_DIRECTORY=$INPUT/egeoffrey
     fi
 }
 
@@ -283,7 +283,7 @@ install_egeoffrey_cli() {
 # install egeoffrey base modules
 install_egeoffrey_modules() {
     echo -n "Installing and starting eGeoffrey..."
-    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
+    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-controller-config:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
     if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
