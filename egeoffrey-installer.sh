@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="4"
+REVISION="5"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
 DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -212,10 +212,10 @@ ask_install_directory() {
     if [ -z "$INPUT" ]; then
         INSTALL_DIRECTORY=$CURRENT_DIR/egeoffrey
     else
-        if [ ! -d "$INPUT/egeoffrey" ]; then
-            mkdir -p $INPUT/egeoffrey
-        fi
         INSTALL_DIRECTORY=$INPUT/egeoffrey
+    fi
+    if [ ! -d "$INSTALL_DIRECTORY" ]; then
+        mkdir -p $INSTALL_DIRECTORY
     fi
 }
 
