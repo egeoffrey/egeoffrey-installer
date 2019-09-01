@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="5"
+REVISION="6"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
 DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -255,13 +255,23 @@ ask_egeoffrey_settings() {
     fi
     echo -n "Saving eGeoffrey settings in $INSTALL_DIRECTORY/.env..."
     cat > $INSTALL_DIRECTORY/.env <<EOF
+# System settings
 ARCHITECTURE=$ARCHITECTURE
 TZ=$TIMEZONE
+PYTHONUNBUFFERED=1
+
+# Gateway settings
 EGEOFFREY_GATEWAY_HOSTNAME=$EGEOFFREY_GATEWAY_HOSTNAME
 EGEOFFREY_GATEWAY_PORT=$EGEOFFREY_GATEWAY_PORT
+#EGEOFFREY_GATEWAY_TRANSPORT=websockets
+#EGEOFFREY_GATEWAY_SSL=0
+#EGEOFFREY_GATEWAY_CA_CERT=ca.crt
+#EGEOFFREY_GATEWAY_CERTFILE=client.crt
+#EGEOFFREY_GATEWAY_KEYFILE=client.key
+
+# House settings
 EGEOFFREY_ID=$EGEOFFREY_ID
 EGEOFFREY_PASSCODE=$EGEOFFREY_PASSCODE
-PYTHONUNBUFFERED=1
 EOF
     echo -e "\033[32mdone\033[0m"
 }
