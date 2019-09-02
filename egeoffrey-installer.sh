@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="6"
+REVISION="7"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
 DEFAULT_BRANCH="development"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -221,58 +221,78 @@ ask_install_directory() {
 
 # ask for egeoffrey settings
 ask_egeoffrey_settings() {
-    # gateway hostname
-    echo "What is the hostname of your eGeoffrey Gateway? [egeoffrey-gateway]"
+    # gateway host
+    echo "What is, if any, the hostname of your remote gateway? Leave if empty for a local installation []"
     read INPUT
-    if [ -z "$INPUT" ]; then
-        EGEOFFREY_GATEWAY_HOSTNAME="egeoffrey-gateway"
-    else
-        EGEOFFREY_GATEWAY_HOSTNAME=$INPUT
-    fi
-    # gateway port
-    echo "On which port the eGeoffrey Gateway is listening to? [443]"
-    read INPUT
-    if [ -z "$INPUT" ]; then
-        EGEOFFREY_GATEWAY_PORT="443"
-    else
-        EGEOFFREY_GATEWAY_PORT=$INPUT
-    fi
-    # house id
-    echo "What is your House ID? [default_house]"
-    read INPUT
-    if [ -z "$INPUT" ]; then
-        EGEOFFREY_ID="default_house"
-    else
-        EGEOFFREY_ID=$INPUT
-    fi
-    # house passcode
-    echo "What is your House Passcode? []"
-    read INPUT
-    if [ -z "$INPUT" ]; then
-        EGEOFFREY_PASSCODE=""
-    else
-        EGEOFFREY_PASSCODE=$INPUT
+    # configuring the remote gateway the local bridge will connect to
+    if [ -n "$INPUT" ]; then
+        REMOTE_EGEOFFREY_GATEWAY_HOSTNAME=$INPUT
+        # gateway port
+        echo "On which port the remote Gateway is listening to? [8883]"
+        read INPUT
+        if [ -z "$INPUT" ]; then
+            REMOTE_EGEOFFREY_GATEWAY_PORT="8883"
+        else
+            REMOTE_EGEOFFREY_GATEWAY_PORT=$INPUT
+        fi
+        # gateway tls/ssl
+        echo "Does the remote gateway enforce TLS/SSL? (y/n) [y]"
+        read INPUT
+        if [ -z "$INPUT" ] || [ "$INPUT" = "y" ]; then
+            REMOTE_EGEOFFREY_GATEWAY_SSL=1
+        else
+            REMOTE_EGEOFFREY_GATEWAY_SSL=0
+        fi
+        # house id
+        echo "What is your House ID?"
+        read INPUT
+        REMOTE_EGEOFFREY_ID=$INPUT
+        # house passcode
+        echo "What is your House Passcode?"
+        read INPUT
+        REMOTE_EGEOFFREY_PASSCODE=$INPUT
     fi
     echo -n "Saving eGeoffrey settings in $INSTALL_DIRECTORY/.env..."
     cat > $INSTALL_DIRECTORY/.env <<EOF
-# System settings
+## System settings
 ARCHITECTURE=$ARCHITECTURE
 TZ=$TIMEZONE
 PYTHONUNBUFFERED=1
 
-# Gateway settings
-EGEOFFREY_GATEWAY_HOSTNAME=$EGEOFFREY_GATEWAY_HOSTNAME
-EGEOFFREY_GATEWAY_PORT=$EGEOFFREY_GATEWAY_PORT
+## Gateway settings
+#EGEOFFREY_GATEWAY_HOSTNAME=egeoffrey-gateway
+#EGEOFFREY_GATEWAY_PORT=443
 #EGEOFFREY_GATEWAY_TRANSPORT=websockets
 #EGEOFFREY_GATEWAY_SSL=0
-#EGEOFFREY_GATEWAY_CA_CERT=ca.crt
+#EGEOFFREY_GATEWAY_CA_CERT=/etc/ssl/certs
 #EGEOFFREY_GATEWAY_CERTFILE=client.crt
 #EGEOFFREY_GATEWAY_KEYFILE=client.key
-
-# House settings
-EGEOFFREY_ID=$EGEOFFREY_ID
-EGEOFFREY_PASSCODE=$EGEOFFREY_PASSCODE
 EOF
+    if [ -n "$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME" ]; then
+        cat >> $INSTALL_DIRECTORY/.env <<EOF
+
+## Remote gateway settings
+REMOTE_EGEOFFREY_GATEWAY_HOSTNAME=$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME
+REMOTE_EGEOFFREY_GATEWAY_PORT=$REMOTE_EGEOFFREY_GATEWAY_PORT
+REMOTE_EGEOFFREY_GATEWAY_SSL=$REMOTE_EGEOFFREY_GATEWAY_SSL
+#REMOTE_EGEOFFREY_GATEWAY_CA_CERT=/etc/ssl/certs
+#REMOTE_EGEOFFREY_GATEWAY_CERTFILE=client.crt
+#REMOTE_EGEOFFREY_GATEWAY_KEYFILE=client.key
+REMOTE_EGEOFFREY_ID=$REMOTE_EGEOFFREY_ID
+REMOTE_EGEOFFREY_PASSCODE=$REMOTE_EGEOFFREY_PASSCODE
+
+## House settings
+EGEOFFREY_ID=$REMOTE_EGEOFFREY_ID
+#EGEOFFREY_PASSCODE=
+EOF
+    else
+        cat >> $INSTALL_DIRECTORY/.env <<EOF
+
+## House settings
+EGEOFFREY_ID=house
+#EGEOFFREY_PASSCODE=
+EOF
+    fi
     echo -e "\033[32mdone\033[0m"
 }
 
@@ -293,7 +313,14 @@ install_egeoffrey_cli() {
 # install egeoffrey base modules
 install_egeoffrey_modules() {
     echo -n "Installing and starting eGeoffrey..."
-    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
+    # if the gateway is remote, install the bridge instead
+    if [ -n "$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME" ]; then
+        GATEWAY_PACKAGE="egeoffrey-bridge"
+    else
+        GATEWAY_PACKAGE="egeoffrey-gateway"
+    fi
+    # install the packages
+    run "egeoffrey-cli -d $INSTALL_DIRECTORY install $GATEWAY_PACKAGE:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
     if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
