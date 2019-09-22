@@ -2,8 +2,8 @@
 
 VERSION="1.0"
 REVISION="7"
-EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/development/egeoffrey-cli"
-DEFAULT_BRANCH="development"
+EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/master/egeoffrey-cli"
+DEFAULT_BRANCH="master"
 LOG_FILE="/tmp/egeoffrey-installer.log"
 APT_GET_UPDATE_DONE=""
 
