@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="7"
+REVISION="8"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/master/egeoffrey-cli"
 DEFAULT_BRANCH="master"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -173,19 +173,6 @@ install_docker_compose() {
     echo -e "\033[32mdone\033[0m"
 }
 
-# detect timezone
-detect_timezone() {
-    echo -n "Detecting system timezone..."
-    OUTPUT=$(cat /etc/timezone 2>/dev/null)
-    if [ -n "$OUTPUT" ]; then
-        TIMEZONE=$OUTPUT
-        echo -e "\033[32mok\033[0m ($TIMEZONE)"
-    else
-        TIMEZONE="Europe/Paris"
-        echo -e "\033[33mfailed, using default $TIMEZONE\033[0m"
-    fi
-}
-
 # detect architecture
 detect_architecture() {
     echo -n "Detecting CPU architecture..."
@@ -204,10 +191,10 @@ detect_architecture() {
     fi
 }
 
-# ask for installation directory
-ask_install_directory() {
+# install egeoffrey
+install_egeoffrey() {
     CURRENT_DIR=$(pwd)
-    echo "Where do you want to install eGeoffrey? [$CURRENT_DIR/egeoffrey]"
+    echo "Where do you want to install eGeoffrey? An 'egeoffrey' subdirectory will be appended to your input [$CURRENT_DIR/egeoffrey]"
     read INPUT
     if [ -z "$INPUT" ]; then
         INSTALL_DIRECTORY=$CURRENT_DIR/egeoffrey
@@ -217,83 +204,8 @@ ask_install_directory() {
     if [ ! -d "$INSTALL_DIRECTORY" ]; then
         mkdir -p $INSTALL_DIRECTORY
     fi
-}
-
-# ask for egeoffrey settings
-ask_egeoffrey_settings() {
-    # gateway host
-    echo "What is, if any, the hostname of your remote gateway? Leave if empty for a local installation []"
-    read INPUT
-    # configuring the remote gateway the local bridge will connect to
-    if [ -n "$INPUT" ]; then
-        REMOTE_EGEOFFREY_GATEWAY_HOSTNAME=$INPUT
-        # gateway port
-        echo "On which port the remote Gateway is listening to? [8883]"
-        read INPUT
-        if [ -z "$INPUT" ]; then
-            REMOTE_EGEOFFREY_GATEWAY_PORT="8883"
-        else
-            REMOTE_EGEOFFREY_GATEWAY_PORT=$INPUT
-        fi
-        # gateway tls/ssl
-        echo "Does the remote gateway enforce TLS/SSL? (y/n) [y]"
-        read INPUT
-        if [ -z "$INPUT" ] || [ "$INPUT" = "y" ]; then
-            REMOTE_EGEOFFREY_GATEWAY_SSL=1
-        else
-            REMOTE_EGEOFFREY_GATEWAY_SSL=0
-        fi
-        # house id
-        echo "What is your House ID?"
-        read INPUT
-        REMOTE_EGEOFFREY_ID=$INPUT
-        # house passcode
-        echo "What is your House Passcode?"
-        read INPUT
-        REMOTE_EGEOFFREY_PASSCODE=$INPUT
-    fi
-    echo -n "Saving eGeoffrey settings in $INSTALL_DIRECTORY/.env..."
-    cat > $INSTALL_DIRECTORY/.env <<EOF
-## System settings
-ARCHITECTURE=$ARCHITECTURE
-TZ=$TIMEZONE
-PYTHONUNBUFFERED=1
-
-## Gateway settings
-#EGEOFFREY_GATEWAY_HOSTNAME=egeoffrey-gateway
-#EGEOFFREY_GATEWAY_PORT=443
-#EGEOFFREY_GATEWAY_TRANSPORT=websockets
-#EGEOFFREY_GATEWAY_SSL=0
-#EGEOFFREY_GATEWAY_CA_CERT=/etc/ssl/certs
-#EGEOFFREY_GATEWAY_CERTFILE=client.crt
-#EGEOFFREY_GATEWAY_KEYFILE=client.key
-EOF
-    if [ -n "$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME" ]; then
-        cat >> $INSTALL_DIRECTORY/.env <<EOF
-
-## Remote gateway settings
-REMOTE_EGEOFFREY_GATEWAY_HOSTNAME=$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME
-REMOTE_EGEOFFREY_GATEWAY_PORT=$REMOTE_EGEOFFREY_GATEWAY_PORT
-REMOTE_EGEOFFREY_GATEWAY_SSL=$REMOTE_EGEOFFREY_GATEWAY_SSL
-#REMOTE_EGEOFFREY_GATEWAY_CA_CERT=/etc/ssl/certs
-#REMOTE_EGEOFFREY_GATEWAY_CERTFILE=client.crt
-#REMOTE_EGEOFFREY_GATEWAY_KEYFILE=client.key
-REMOTE_EGEOFFREY_ID=$REMOTE_EGEOFFREY_ID
-REMOTE_EGEOFFREY_PASSCODE=$REMOTE_EGEOFFREY_PASSCODE
-
-## House settings
-EGEOFFREY_ID=$REMOTE_EGEOFFREY_ID
-#EGEOFFREY_PASSCODE=
-EOF
-    else
-        cat >> $INSTALL_DIRECTORY/.env <<EOF
-
-## House settings
-EGEOFFREY_ID=house
-#EGEOFFREY_PASSCODE=
-EOF
-    fi
-    echo -e "\033[32mdone\033[0m"
+	echo "Running eGeoffrey setup..."
+	egeoffrey-cli -d $INSTALL_DIRECTORY setup
 }
 
 # download egeoffrey-cli
@@ -313,14 +225,8 @@ install_egeoffrey_cli() {
 # install egeoffrey base modules
 install_egeoffrey_modules() {
     echo -n "Installing and starting eGeoffrey..."
-    # if the gateway is remote, install the bridge instead
-    if [ -n "$REMOTE_EGEOFFREY_GATEWAY_HOSTNAME" ]; then
-        GATEWAY_PACKAGE="egeoffrey-bridge"
-    else
-        GATEWAY_PACKAGE="egeoffrey-gateway"
-    fi
     # install the packages
-    run "egeoffrey-cli -d $INSTALL_DIRECTORY install $GATEWAY_PACKAGE:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
+    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
     if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
@@ -335,8 +241,6 @@ echo
 if [ "$EUID" -ne 0 ]; then 
     error "Please run as root"
 fi
-# detect timezone
-detect_timezone
 # detect CPU architecture
 detect_architecture
 # install required OS dependencies (file to search - package to install if not found)
@@ -344,6 +248,7 @@ install_os python python
 install_os pip python-pip
 install_os ifconfig net-tools
 install_os git git
+install_os curl curl
 # install other required OS dependencies (python module to import - package to install if not found)
 install_python_os yaml python-yaml
 # install required python dependencies (python module to import - python package to install if not found)
@@ -352,12 +257,10 @@ install_python requests requests
 install_docker
 install_docker_compose
 echo
-# ask where to install
-ask_install_directory
-# ask egeoffrey settings
-ask_egeoffrey_settings
 # install egeoffrey-cli
 install_egeoffrey_cli
+# install egeoffrey
+install_egeoffrey
 # install base modules
 install_egeoffrey_modules
 
@@ -365,7 +268,7 @@ install_egeoffrey_modules
 # TODO: show the main IP only
 MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'|tail -1)
 echo ""
-echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey should be up and running now, you can access the web interface on http://$MY_IP"
-echo "Run 'egeoffrey-cli' to search the marketplace and add additional packages to your installation."
-echo "If connecting to a remote instance or provided with HouseID/Passcode, please edit $INSTALL_DIRECTORY/.env and run 'egeoffrey-cli reload'"
+echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey has been started, please wait a couple of minutes and then access the web interface on http://$MY_IP"
+echo "Run 'egeoffrey-cli' to stop/restart eGeoffrey, search the marketplace and add additional packages to your installation."
+echo "If you need to change any of the information provided during the setup, please run 'sudo egeoffrey-cli setup'"
 
