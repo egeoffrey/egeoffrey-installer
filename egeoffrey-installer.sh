@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="8"
+REVISION="9"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/master/egeoffrey-cli"
 DEFAULT_BRANCH="master"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -265,10 +265,7 @@ install_egeoffrey
 install_egeoffrey_modules
 
 # print out completed message
-# TODO: show the main IP only
-MY_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'|tail -1)
 echo ""
-echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey has been started, please wait a couple of minutes and then access the web interface on http://$MY_IP"
-echo "Run 'egeoffrey-cli' to stop/restart eGeoffrey, search the marketplace and add additional packages to your installation."
-echo "If you need to change any of the information provided during the setup, please run 'sudo egeoffrey-cli setup'"
-
+echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey has been started, please wait a couple of minutes and then access the web interface"
+echo ""
+egeoffrey-cli -d $INSTALL_DIRECTORY summary
