@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="10"
+REVISION="11"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/master/egeoffrey-cli"
 DEFAULT_BRANCH="master"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -195,7 +195,7 @@ detect_architecture() {
 install_egeoffrey() {
     CURRENT_DIR=$(pwd)
     echo "Where do you want to install eGeoffrey? An 'egeoffrey' subdirectory will be appended to your input [$CURRENT_DIR/egeoffrey]"
-    if [ -z "$INSTALL_DIRECTORY" ]; then
+    if [ -z "$EGEOFFREY_INSTALL_DIRECTORY" ]; then
         read INPUT
         if [ -z "$INPUT" ]; then
             INSTALL_DIRECTORY=$CURRENT_DIR/egeoffrey
@@ -203,6 +203,7 @@ install_egeoffrey() {
             INSTALL_DIRECTORY=$INPUT/egeoffrey
         fi
     else
+        INSTALL_DIRECTORY=$EGEOFFREY_INSTALL_DIRECTORY
         echo $INSTALL_DIRECTORY
     fi
     if [ ! -d "$INSTALL_DIRECTORY" ]; then
