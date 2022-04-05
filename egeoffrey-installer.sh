@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="1.0"
-REVISION="11"
+REVISION="12"
 EGEOFFREY_CLI_URL="https://raw.githubusercontent.com/egeoffrey/egeoffrey-cli/master/egeoffrey-cli"
 DEFAULT_BRANCH="master"
 LOG_FILE="/tmp/egeoffrey-installer.log"
@@ -210,7 +210,7 @@ install_egeoffrey() {
         mkdir -p $INSTALL_DIRECTORY
     fi
 	echo "Running eGeoffrey setup..."
-	egeoffrey-cli -d $INSTALL_DIRECTORY setup
+	egeoffrey-cli -d $INSTALL_DIRECTORY config setup
 }
 
 # download egeoffrey-cli
@@ -231,7 +231,7 @@ install_egeoffrey_cli() {
 install_egeoffrey_modules() {
     echo -n "Installing and starting eGeoffrey..."
     # install the packages
-    run "egeoffrey-cli -d $INSTALL_DIRECTORY install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY start"
+    run "egeoffrey-cli -d $INSTALL_DIRECTORY package install egeoffrey-gateway:$DEFAULT_BRANCH egeoffrey-database:$DEFAULT_BRANCH egeoffrey-controller:$DEFAULT_BRANCH egeoffrey-gui:$DEFAULT_BRANCH && egeoffrey-cli -d $INSTALL_DIRECTORY house start"
     if [ -f "$INSTALL_DIRECTORY/docker-compose.yml" ]; then
         echo -e "\033[32mdone\033[0m"
     else
@@ -249,14 +249,13 @@ fi
 # detect CPU architecture
 detect_architecture
 # install required OS dependencies (file to search - package to install if not found)
-install_os python python
-install_os pip python-pip
+install_os python3 python3
+install_os pip3 python3-pip
 install_os ifconfig net-tools
 install_os git git
 install_os curl curl
-# install other required OS dependencies (python module to import - package to install if not found)
-install_python_os yaml python-yaml
 # install required python dependencies (python module to import - python package to install if not found)
+install_python yaml pyyaml
 install_python requests requests
 # install docker
 install_docker
@@ -273,4 +272,4 @@ install_egeoffrey_modules
 echo ""
 echo -e "\033[32mCOMPLETED!\033[0m - eGeoffrey has been started, please wait a couple of minutes and then access the web interface"
 echo ""
-egeoffrey-cli -d $INSTALL_DIRECTORY summary
+egeoffrey-cli -d $INSTALL_DIRECTORY config summary
